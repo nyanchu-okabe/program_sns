@@ -1,14 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // 投稿データのサンプル (JSON形式)
-    const posts = [
-        { id: 1, title: "3Dキャラクターモデリング", subtitle: "進捗報告", date: "2024-09-12", content: "キャラクターモデリングの進捗報告です。", category: "モデリング", tags: ["キャラクター", "3D"] },
-        { id: 2, title: "ゲームエンジン選定", subtitle: "選定候補", date: "2024-09-10", content: "使用するゲームエンジンの候補について説明します。", category: "エンジン", tags: ["ゲーム", "エンジン"] },
-        { id: 3, title: "新しいアニメーション機能", subtitle: "機能追加", date: "2024-09-08", content: "最新のアニメーション機能を実装しました。", category: "アニメーション", tags: ["アニメーション", "機能追加"] },
-        { id: 4, title: "3Dデータ保存アルゴリズム", subtitle: "保存アルゴリズム", date: "2024-09-05", content: "database", category: "アルゴリズム", tags: ["データ", "アルゴリズム"] },
-        { id: 5, title: "OpenGL vs LWJGL", subtitle: "グラフィックライブラリ比較", date: "2024-09-03", content: "glut is good", category: "比較", tags: ["OpenGL", "LWJGL"] },
-        { id: 6, title: "C++ / RUST / JAVA", subtitle: "言語比較", date: "2024-09-01", content: "vs", category: "比較", tags: ["C++", "RUST", "JAVA"] }
-    ];
-
     const postList = document.getElementById("post-list");
     const searchInput = document.getElementById("search-input");
     const categoryFilter = document.getElementById("category-filter");
@@ -21,8 +11,21 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    // タグフィルタのオプションを動的に生成
-    function populateTagFilter() {
+    let posts = [];
+
+    async function fetchPosts() {
+        try {
+            const response = await fetch('posts.json');
+            posts = await response.json();
+            // 初期表示
+            renderPosts(posts);
+            populateTagFilter(posts);
+        } catch (error) {
+            console.error("データの取得に失敗しました:", error);
+        }
+    }
+
+    function populateTagFilter(posts) {
         const uniqueTags = new Set();
         posts.forEach(post => {
             post.tags.forEach(tag => uniqueTags.add(tag));
@@ -58,73 +61,67 @@ document.addEventListener("DOMContentLoaded", function () {
     function showPostDetail(post) {
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
         document.getElementById("post-title").textContent = post.title;
-        document.getElementById("post-subtitle").textContent = post.subtitle;
-        document.getElementById("post-date").textContent = post.date;
+        document.getElementById("post-subtitle").textContent = post.subtitle || '';
+        document.getElementById("post-date").textContent = post.date || '';
         document.getElementById("post-content").textContent = post.content;
         document.getElementById("post-detail").classList.add('active');
-        window.location.hash = '#post-detail';
     }
 
-    function filterPosts() {
-        const query = searchInput.value.toLowerCase();
-        const category = categoryFilter.value;
-        const tag = tagFilter.value;
-        let filteredPosts = posts.filter(post =>
-            (query === '' || post.title.toLowerCase().includes(query) || post.subtitle.toLowerCase().includes(query) || post.content.toLowerCase().includes(query)) &&
-            (category === '' || post.category === category) &&
-            (tag === '' || post.tags.includes(tag))
-        );
+    function highlightText(text) {
+        const searchTerm = searchInput.value.toLowerCase();
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
 
-        switch (sortSelect.value) {
-            case 'date-asc':
-                filteredPosts.sort((a, b) => new Date(a.date) - new Date(b.date));
-                break;
-            case 'date-desc':
-                filteredPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
-                break;
-            case 'title-asc':
-                filteredPosts.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case 'title-desc':
-                filteredPosts.sort((a, b) => b.title.localeCompare(a.title));
-                break;
+    function applyFilters() {
+        let filteredPosts = posts;
+
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedCategory = categoryFilter.value;
+        const selectedTag = tagFilter.value;
+
+        if (searchTerm) {
+            filteredPosts = filteredPosts.filter(post =>
+                post.title.toLowerCase().includes(searchTerm) ||
+                post.subtitle.toLowerCase().includes(searchTerm) ||
+                post.content.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        if (selectedCategory) {
+            filteredPosts = filteredPosts.filter(post => post.category === selectedCategory);
+        }
+
+        if (selectedTag) {
+            filteredPosts = filteredPosts.filter(post => post.tags.includes(selectedTag));
         }
 
         renderPosts(filteredPosts);
     }
 
-    function highlightText(text) {
-        const query = searchInput.value.toLowerCase();
-        if (!query) return text;
-        const regex = new RegExp(`(${query})`, 'gi');
-        return text.replace(regex, '<span class="highlight">$1</span>');
+    function sortPosts(posts, sortBy) {
+        return posts.sort((a, b) => {
+            if (sortBy === 'date') {
+                return new Date(b.date) - new Date(a.date);
+            } else if (sortBy === 'title') {
+                return a.title.localeCompare(b.title);
+            }
+        });
     }
 
-    function showTabFromHash() {
-        const hash = window.location.hash || '#home';
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        const activeTab = document.querySelector(hash);
-        if (activeTab) {
-            activeTab.classList.add('active');
-        }
-    }
-
-    function handleBackButtonClick() {
+    searchInput.addEventListener("input", applyFilters);
+    categoryFilter.addEventListener("change", applyFilters);
+    tagFilter.addEventListener("change", applyFilters);
+    sortSelect.addEventListener("change", function () {
+        const sortedPosts = sortPosts(posts, sortSelect.value);
+        renderPosts(sortedPosts);
+    });
+    backButton.addEventListener("click", function () {
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
         document.getElementById("home").classList.add('active');
-        window.location.hash = '#home';
-    }
+    });
 
-    searchInput.addEventListener("input", filterPosts);
-    categoryFilter.addEventListener("change", filterPosts);
-    tagFilter.addEventListener("change", filterPosts);
-    sortSelect.addEventListener("change", filterPosts);
-    backButton.addEventListener("click", handleBackButtonClick);
-
-    populateTagFilter(); // タグフィルタのオプションを生成
-    showTabFromHash();
-    window.addEventListener('hashchange', showTabFromHash);
-
-    // 初期表示
-    renderPosts(posts);
+    // 最初のデータの取得
+    fetchPosts();
 });
