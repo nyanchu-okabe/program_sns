@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     // 投稿データのサンプル (JSON形式)
-    [
+    const posts = [
     {
         "id": 1,
         "title": "3Dキャラクターモデリング",
