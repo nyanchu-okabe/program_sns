@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function fetchPosts() {
         try {
-            const response = await fetch('posts.json');
+            const response = await fetch('./posts.json');
             posts = await response.json();
             // 初期表示
             renderPosts(posts);
