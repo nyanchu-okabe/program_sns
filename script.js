@@ -136,8 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "category": "アニメーション",
         "tags": ["3Dアニメーション", "技術"]
     }
-]
-
+];
 
     const postList = document.getElementById("post-list");
     const searchInput = document.getElementById("search-input");
