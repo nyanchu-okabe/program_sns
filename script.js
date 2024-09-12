@@ -1,3 +1,4 @@
+import "data.js"
 document.addEventListener("DOMContentLoaded", function () {
     // 投稿データのサンプル (JSON形式)
 
